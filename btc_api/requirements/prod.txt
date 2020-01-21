@@ -1,0 +1,4 @@
+# Specifies only prod-specific requirements
+# Imports the common ones too
+-r common.txt
+gunicorn==20.0.4
