@@ -40,3 +40,60 @@ The production environment scales Python Flask App using [Gunicorn](https://guni
 ```bash
 $ docker-compose up --build --detach
 ```
+
+## Testing
+
+We can test the endpoint using `curl` via POST sending JSON payload (just remember to set correct Content-Type header):
+
+```bash
+$ curl -i -X POST http://localhost/payment_transactions \
+-H "Content-Type: application/json" \
+-d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "min_confirmations": 7}'
+```
+
+Here is another example with multiline JSON:
+
+```bash
+$ curl -i -X POST http://localhost/payment_transactions \
+-H "Content-Type: application/json" \
+--data-binary @- << EOF
+{
+    "source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh",
+    "outputs": {
+        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000
+    },
+    "min_confirmations": 7,
+    "fee_kb": 1024,
+    "strategy": "greedy_max_secure"
+}
+EOF
+```
+
+Testnet is also supported:
+
+```bash
+$ curl -i -X POST http://localhost/payment_transactions \
+-H "Content-Type: application/json" \
+--data-binary @- << EOF
+{
+    "source_address": "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
+    "outputs": {
+        "2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc": 1000
+    },
+    "min_confirmations": 7,
+    "fee_kb": 1024,
+    "strategy": "greedy_max_secure",
+    "testnet": true
+}
+EOF
+```
+
+### Decode Transaction
+
+If you have access to a `bitcoind` node you can use `bitcoin-cli` to decode raw transaction:
+
+```bash
+$ bitcoin-cli decoderawtransaction "..."
+```
+
+Or you can use an convenient online service like [Decode Raw Transaction - BlockCypher](https://live.blockcypher.com/btc/decodetx/).
