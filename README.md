@@ -20,7 +20,7 @@ Start Flask development server (in debug mode) by running the following in the t
 
 ```bash
 $ cd btc_api/src
-$ env FLASK_APP=app.py FLASK_DEBUG=1 flask run
+$ env FLASK_APP=app.py FLASK_DEBUG=1 python -m flask run
 ```
 
 ### Install the hooks
