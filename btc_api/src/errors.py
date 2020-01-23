@@ -1,6 +1,5 @@
 from dataclasses import dataclass, asdict
 from typing import Dict, Any
-from flask import jsonify
 
 BAD_REQUEST = 400
 INTERNAL_SERVER_ERROR = 500
@@ -28,7 +27,5 @@ class ErrorResponse:
     message: str
     details: Dict[str, Any] = None
 
-    def to_json_response(self):
-        response = jsonify(asdict(self))
-        response.status_code = self.status_code
-        return response
+    def to_dict(self):
+        return asdict(self)
