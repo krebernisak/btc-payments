@@ -1,8 +1,9 @@
 import random
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Any
-from flask import Flask, escape, request, jsonify, abort
+from dataclasses import dataclass
+from typing import List, Dict
+from flask import Flask, escape, request, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError
+from errors import InvalidUsage, ErrorResponse, BAD_REQUEST, INTERNAL_SERVER_ERROR
 from wallet.query import get_unspent
 from wallet.coin_select import (
     GreedyMaxSecure,
@@ -21,39 +22,11 @@ from bit.format import get_version
 
 app = Flask(__name__)
 
-BAD_REQUEST = 400
-INTERNAL_SERVER_ERROR = 500
 
 MIN_CONFIRMATIONS = 6
 MIN_RELAY_FEE = 1000
 
 RANDOM_SEED = 1234
-
-
-class InvalidUsage(Exception):
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-
-@dataclass
-class ErrorResponse:
-    """Class representing request data for the /payment_transactions endpoint."""
-
-    status_code: str
-    name: str
-    message: str
-    details: Dict[str, Any] = None
-
-    def to_json_response(self):
-        response = jsonify(asdict(self))
-        response.status_code = self.status_code
-        return response
 
 
 @app.errorhandler(InvalidUsage)

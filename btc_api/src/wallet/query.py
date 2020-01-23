@@ -31,11 +31,11 @@ def get_unspent(address: str, testnet: bool = False) -> List[Unspent]:
 
     def to_unspent(utxo: Dict) -> Unspent:
         return Unspent(
-            amount=utxo["value"],
-            confirmations=utxo["confirmations"],
-            script=utxo["script"],
             txid=utxo["tx_hash_big_endian"],
             txindex=utxo["tx_output_n"],
+            script=utxo["script"],
+            amount=utxo["value"],
+            confirmations=utxo["confirmations"],
         )
 
     yield from (to_unspent(utxo) for utxo in data["unspent_outputs"])
