@@ -5,13 +5,13 @@ from typing import Dict, List, Tuple
 
 from bit.wallet import Unspent
 
-from wallet.transaction import (
+from app.wallet.transaction import (
     TxContext,
     Output,
     address_to_scriptpubkey_size,
     estimate_tx_fee_kb,
 )
-from wallet.exceptions import InsufficientFunds
+from app.wallet.exceptions import InsufficientFunds
 
 DUST_THRESHOLD = 5430
 

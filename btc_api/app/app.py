@@ -1,13 +1,13 @@
 from flask import Flask, escape, request, jsonify
 from werkzeug.exceptions import HTTPException, InternalServerError
-from errors import InvalidUsage, ErrorResponse, BAD_REQUEST, INTERNAL_SERVER_ERROR
-from payment import (
+from app.errors import InvalidUsage, ErrorResponse, BAD_REQUEST, INTERNAL_SERVER_ERROR
+from app.payment import (
     PaymentTxRequest,
     process_payment_tx_request,
     MIN_CONFIRMATIONS,
     MIN_RELAY_FEE,
 )
-from wallet.exceptions import InsufficientFunds
+from app.wallet.exceptions import InsufficientFunds
 
 app = Flask(__name__)
 

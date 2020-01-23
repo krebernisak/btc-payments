@@ -19,7 +19,7 @@ This will install dependencies for development environment including black forma
 Start Flask development server (in debug mode) by running the following in the terminal:
 
 ```bash
-$ cd btc_api/src
+$ cd btc_api/app
 $ env FLASK_APP=app.py FLASK_DEBUG=1 python -m flask run
 ```
 

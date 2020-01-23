@@ -16,4 +16,7 @@ RUN apk update \
     && apk del .build-deps
 
 # copy project
-COPY ./src ./
+COPY ./app ./
+
+# set work directory one level up to get Gunicorn to work with absolute paths
+WORKDIR /usr/src
