@@ -44,6 +44,8 @@ class TxContext:
 
 
 def create_unsigned(inputs: List[Unspent], outputs: List[Output]) -> TxObj:
+    """Creates an unsigned transaction object"""
+
     raw_outputs = construct_outputs(astuple(o) for o in outputs)
     raw_inputs = [
         TxIn(
@@ -58,16 +60,14 @@ def create_unsigned(inputs: List[Unspent], outputs: List[Output]) -> TxObj:
 
 
 def address_to_scriptpubkey_size(address: str) -> int:
-    """
-    Calculate total size (in bytes) of P2PKH/P2SH scriptpubkey
-    """
+    """Calculates total size (in bytes) of P2PKH/P2SH scriptpubkey"""
+
     return len(address_to_scriptpubkey(address)) + 9
 
 
 def estimate_tx_fee_kb(in_size, n_in, out_size, n_out, fee_kb) -> int:
-    """
-    Estimate transaction fee using satoshis per kilobyte
-    """
+    """Estimates transaction fee using satoshis per kilobyte"""
+
     fee_byte = Fraction(fee_kb, 1024)
     fee = estimate_tx_fee(in_size, n_in, out_size, n_out, fee_byte)
     return math.ceil(fee)

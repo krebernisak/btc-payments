@@ -8,9 +8,9 @@ class InsufficientFunds(WalletError):
     """Error raised when address has insufficient funds to make a transaction.
 
     Attributes:
-        address -- input address for which the error occurred
-        balance -- current balance for the address
-        message -- explanation of the error
+        address: input address for which the error occurred
+        balance: current balance for the address
+        message: explanation of the error
     """
 
     def __init__(self, address, balance=0):
@@ -31,9 +31,9 @@ class EmptyUnspentTransactionOutputSet(InsufficientFunds):
     """Error raised when address has an empty UTXO set.
 
     Attributes:
-        address -- input address for which the error occurred
-        balance -- current balance for the address
-        message -- explanation of the error
+        address: input address for which the error occurred
+        balance: current balance for the address
+        message: explanation of the error
     """
 
     def __init__(self, address):
@@ -45,9 +45,9 @@ class NoConfirmedTransactionsFound(InsufficientFunds):
     """Error raised when address has no confirmed unspent transactions to use.
 
     Attributes:
-        address -- input address for which the error occurred
-        balance -- current balance for the address
-        message -- explanation of the error
+        address: input address for which the error occurred
+        balance: current balance for the address
+        message: explanation of the error
     """
 
     def __init__(self, address, min_confirmations):

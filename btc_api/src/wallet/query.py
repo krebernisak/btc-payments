@@ -16,7 +16,8 @@ def get_unspent(address: str, testnet: bool = False) -> List[Unspent]:
     to fetch a list of unspent transactions.
 
     Args:
-        address: String bitcoin address.
+        address (str): Bitcoin address.
+        testnet (bool): Is this a testnet network request.
 
     Returns:
         List of unspent transactions that were found. Empty if

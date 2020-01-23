@@ -7,6 +7,8 @@ INTERNAL_SERVER_ERROR = 500
 
 
 class InvalidUsage(Exception):
+    """Exception representing invalid usage of the API service."""
+
     status_code = 400
 
     def __init__(self, message, status_code=None, payload=None):
@@ -19,7 +21,7 @@ class InvalidUsage(Exception):
 
 @dataclass
 class ErrorResponse:
-    """Class representing request data for the /payment_transactions endpoint."""
+    """Class representing error response data for the API service."""
 
     status_code: str
     name: str

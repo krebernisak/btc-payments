@@ -1,6 +1,6 @@
 # btc_payments
 
-Implement a Python REST web service that provides the functionality to create BTC transactions
+This project implements a Python REST web service that provides the functionality to create unsigned BTC transactions using multiple coin selection strategies.
 
 ## Development
 
@@ -48,10 +48,19 @@ We can test the endpoint using `curl` via POST sending JSON payload (just rememb
 ```bash
 $ curl -i -X POST http://localhost/payment_transactions \
 -H "Content-Type: application/json" \
--d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "min_confirmations": 7}'
+-d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000}, "min_confirmations": 7}'
 ```
 
-Here is another example with multiline JSON:
+To get the pretty printed JSON response drop the `-i` flag and pipe the `curl` result to a formatter like `json_pp`:
+
+```bash
+$ curl -X POST http://localhost/payment_transactions \
+-H "Content-Type: application/json" \
+-d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000}, "min_confirmations": 7}' \
+| json_pp
+```
+
+Here is another example with multiline JSON input:
 
 ```bash
 $ curl -i -X POST http://localhost/payment_transactions \
@@ -60,7 +69,8 @@ $ curl -i -X POST http://localhost/payment_transactions \
 {
     "source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh",
     "outputs": {
-        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000
+        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000,
+        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000
     },
     "min_confirmations": 7,
     "fee_kb": 1024,
@@ -69,7 +79,26 @@ $ curl -i -X POST http://localhost/payment_transactions \
 EOF
 ```
 
-Testnet is also supported:
+Or another one using different a strategy (please use on of [greedy_max_secure|greedy_max_coins|greedy_min_coins|greedy_random]):
+
+```bash
+$ curl -i -X POST http://localhost/payment_transactions \
+-H "Content-Type: application/json" \
+--data-binary @- << EOF
+{
+    "source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh",
+    "outputs": {
+        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000,
+        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000
+    },
+    "min_confirmations": 7,
+    "fee_kb": 1024,
+    "strategy": "greedy_min_coins"
+}
+EOF
+```
+
+Testnet is also supported but make sure to use testnet addresses:
 
 ```bash
 $ curl -i -X POST http://localhost/payment_transactions \
@@ -82,7 +111,7 @@ $ curl -i -X POST http://localhost/payment_transactions \
     },
     "min_confirmations": 7,
     "fee_kb": 1024,
-    "strategy": "greedy_max_secure",
+    "strategy": "greedy_random",
     "testnet": true
 }
 EOF

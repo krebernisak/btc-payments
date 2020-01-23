@@ -112,20 +112,22 @@ class PaymentTxRequest:
 
     def __post_init__(self):
         self.testnet = bool(self.testnet)
+        self.requested_net = "test" if self.testnet else "main"
 
-        self._validate_addresses()
+        self._validate_source_address()
+        self._validate_outputs()
         self._validate_strategy()
         self._validate_fee_kb()
         self._validate_min_confirmations()
 
-    def _validate_addresses(self):
-        requested_net = "test" if self.testnet else "main"
+    def _validate_source_address(self):
+        """Validates source_address attr."""
 
         if not self.source_address:
             raise InvalidUsage("Please specify non-empty source address", BAD_REQUEST)
 
         try:
-            source_net = get_version(self.source_address)
+            self.source_net = get_version(self.source_address)
         except ValueError as err:
             raise InvalidUsage(
                 "Please specify valid source address.",
@@ -136,19 +138,22 @@ class PaymentTxRequest:
                 },
             )
         else:
-            if source_net != requested_net:
+            if self.source_net != self.requested_net:
                 raise InvalidUsage(
-                    f"Cannot send from {source_net}net address {self.source_address} if using {requested_net}net.",
+                    f"Cannot send from {self.source_net}net address {self.source_address} if using {self.requested_net}net.",
                     BAD_REQUEST,
                     payload={
-                        "requested_net": requested_net,
+                        "requested_net": self.requested_net,
                         "source_address": self.source_address,
-                        "source_net": source_net,
+                        "source_net": self.source_net,
                     },
                 )
 
         if self.source_address[0] not in supported_in_prefixes:
             raise InvalidUsage("Only P2PKH inputs are supported", BAD_REQUEST)
+
+    def _validate_outputs(self):
+        """Validates output addresses."""
 
         if not self.outputs:
             raise InvalidUsage("Please specify at least one output", BAD_REQUEST)
@@ -167,20 +172,22 @@ class PaymentTxRequest:
                     payload={"dest_address": dest, "description": str(err)},
                 )
             else:
-                if vs and vs != requested_net:
+                if vs and vs != self.requested_net:
                     raise InvalidUsage(
-                        f"Cannot send to {vs}net address {dest} when spending from a {source_net}net address {self.source_address}.",
+                        f"Cannot send to {vs}net address {dest} when spending from a {self.source_net}net address {self.source_address}.",
                         BAD_REQUEST,
                         payload={
-                            "requested_net": requested_net,
+                            "requested_net": self.requested_net,
                             "source_address": self.source_address,
-                            "source_net": source_net,
+                            "source_net": self.source_net,
                             "dest_address": dest,
                             "dest_net": vs,
                         },
                     )
 
     def _validate_strategy(self):
+        """Validates strategy attr."""
+
         if self.strategy not in coin_select_strategies.keys():
             raise InvalidUsage(
                 f"Please specify one of [{available_strategies_str}] for strategy.",
@@ -189,6 +196,8 @@ class PaymentTxRequest:
             )
 
     def _validate_fee_kb(self):
+        """Validates fee_kb attr."""
+
         try:
             self.fee_kb = int(self.fee_kb)
             if self.fee_kb < MIN_RELAY_FEE:
@@ -201,6 +210,8 @@ class PaymentTxRequest:
             )
 
     def _validate_min_confirmations(self):
+        """Validates min_confirmations attr."""
+
         try:
             self.min_confirmations = int(self.min_confirmations)
             if self.min_confirmations < 0:
@@ -256,6 +267,9 @@ def payment_transactions():
         source_address (string): The address to spend from
         outputs (dictionary): A dictionary that maps addresses to amounts (in SAT)
         fee_kb (int): The fee per kb in SAT
+        strategy (str): One of [greedy_max_secure|greedy_max_coins|greedy_min_coins|greedy_random]
+        min_confirmations (int): Min number of confirmations required to use UTXO as input (default 6)
+        testnet (int): Is this a testnet transaction (default False)
 
     Response body (dictionary):
         raw (string): The unsigned raw transaction
@@ -306,10 +320,11 @@ def payment_transactions():
 
 def app_run():
     use_debugger = app.debug
+    use_reloader = app.debug
     app.run(
         use_debugger=use_debugger,
         debug=app.debug,
-        use_reloader=use_debugger,
+        use_reloader=use_reloader,
         host="0.0.0.0",
     )
 
