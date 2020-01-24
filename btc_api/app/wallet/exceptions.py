@@ -17,7 +17,7 @@ class InsufficientFunds(WalletError):
         super().__init__()
         self.address = address
         self.balance = balance
-        self.message = f"Insufficient funds for address {address}"
+        self.message = f"Insufficient funds for address {address} (balance = {balance})"
 
     @classmethod
     def forAmount(cls, address, balance, out_amount, fee):

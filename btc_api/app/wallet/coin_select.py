@@ -82,6 +82,7 @@ class Greedy(UnspentCoinSelector):
                 n_out += 1
                 out_size += address_to_output_size(context.change_address)
                 fee = estimate_tx_fee_kb(in_size, n_in, out_size, n_out, context.fee_kb)
+                change_amount = in_amount - (out_amount + fee)
                 change_included = True
 
             if out_amount + fee + change_amount <= in_amount:
