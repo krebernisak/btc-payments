@@ -14,6 +14,12 @@ from bit.constants import LOCK_TIME, VERSION_2
 from bit.wallet import Unspent
 from bit.utils import hex_to_bytes
 
+# empty scriptSig for new unsigned transaction.
+EMPTY_SCRIPT_SIG = b""
+VALUE_SIZE = 8
+VAR_INT_MIN_SIZE = 1
+BYTES_IN_KB = 1024
+
 
 @dataclass
 class Output:
@@ -54,25 +60,43 @@ def create_unsigned(inputs: List[Unspent], outputs: List[Output]) -> TxObj:
     raw_outputs = construct_outputs(outputs)
     raw_inputs = [
         TxIn(
-            script_sig=b"",  # empty scriptSig for new unsigned transaction.
-            txid=hex_to_bytes(utxo.txid)[::-1],
-            txindex=utxo.txindex.to_bytes(4, byteorder="little"),
-            amount=utxo.amount.to_bytes(8, byteorder="little"),
+            script_sig=EMPTY_SCRIPT_SIG,
+            txid=serialize_txid(utxo.txid),
+            txindex=serialize_txindex(utxo.txindex),
+            amount=serialize_amount(utxo.amount),
         )
         for utxo in inputs
     ]
     return TxObj(VERSION_2, raw_inputs, raw_outputs, LOCK_TIME)
 
 
-def address_to_scriptpubkey_size(address: str) -> int:
-    """Calculates total size (in bytes) of P2PKH/P2SH scriptpubkey"""
+def serialize_txid(txid: str) -> bytes:
+    """Serializes txid to bytes"""
 
-    return len(address_to_scriptpubkey(address)) + 9
+    return hex_to_bytes(txid)[::-1]
+
+
+def serialize_txindex(txindex: int) -> bytes:
+    """Serializes txindex to bytes"""
+
+    return txindex.to_bytes(4, byteorder="little")
+
+
+def serialize_amount(amount: int) -> bytes:
+    """Serializes amount to bytes"""
+
+    return amount.to_bytes(8, byteorder="little")
+
+
+def address_to_output_size(address: str) -> int:
+    """Calculates total size (in bytes) of TxOut for address"""
+
+    return VALUE_SIZE + VAR_INT_MIN_SIZE + len(address_to_scriptpubkey(address))
 
 
 def estimate_tx_fee_kb(in_size, n_in, out_size, n_out, fee_kb) -> int:
     """Estimates transaction fee using satoshis per kilobyte"""
 
-    fee_byte = Fraction(fee_kb, 1024)
+    fee_byte = Fraction(fee_kb, BYTES_IN_KB)
     fee = estimate_tx_fee(in_size, n_in, out_size, n_out, fee_byte)
     return math.ceil(fee)

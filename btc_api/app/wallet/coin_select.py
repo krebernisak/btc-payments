@@ -8,7 +8,7 @@ from bit.wallet import Unspent
 from app.wallet.transaction import (
     TxContext,
     Output,
-    address_to_scriptpubkey_size,
+    address_to_output_size,
     estimate_tx_fee_kb,
 )
 from app.wallet.exceptions import InsufficientFunds
@@ -55,11 +55,14 @@ class Greedy(UnspentCoinSelector):
         Returns a result of a successfull coin selection.
         """
 
+        if not context.inputs:
+            raise InsufficientFunds(context.address, 0)
+
         outputs = context.outputs[:]
 
         n_out = len(outputs)
         out_amount = sum(out.amount for out in outputs)
-        out_size = sum(address_to_scriptpubkey_size(out.address) for out in outputs)
+        out_size = sum(address_to_output_size(out.address) for out in outputs)
 
         in_size = 0
         in_amount = 0
@@ -77,7 +80,7 @@ class Greedy(UnspentCoinSelector):
 
             if change_amount and not change_included:
                 n_out += 1
-                out_size += address_to_scriptpubkey_size(context.change_address)
+                out_size += address_to_output_size(context.change_address)
                 fee = estimate_tx_fee_kb(in_size, n_in, out_size, n_out, context.fee_kb)
                 change_included = True
 

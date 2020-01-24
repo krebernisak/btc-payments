@@ -2,7 +2,20 @@ import random
 from dataclasses import dataclass
 from typing import List, Dict
 from app.errors import InvalidUsage, BAD_REQUEST
-from app.payment_errors import *
+from app.payment_errors import (
+    EmptySourceAddress,
+    InvalidSourceAddress,
+    NetworkMismatchSourceAddress,
+    NotSupportedSourceAddress,
+    EmptyOutputs,
+    InvalidOutputAddress,
+    InvalidOutputAmount,
+    NotSupportedOutputAddress,
+    NetworkMismatchOutputAddress,
+    InvalidStrategy,
+    InvalidFee,
+    InvalidMinConfirmations,
+)
 from app.wallet.query import get_unspent
 from app.wallet.coin_select import (
     GreedyMaxSecure,
@@ -169,7 +182,7 @@ def process_payment_tx_request(request: PaymentTxRequest) -> PaymentTxResponse:
     """Uses request data to create a raw unsigned transaction response."""
 
     address = request.source_address
-    change_address = address
+    change_address = address  # TODO: add change_address to PaymentTxRequest
 
     utxos = list(get_unspent(address, testnet=request.testnet))
     if not utxos:
