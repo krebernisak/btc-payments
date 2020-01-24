@@ -12,12 +12,20 @@ from app.wallet.exceptions import InsufficientFunds
 app = Flask(__name__)
 
 
+def error_to_json_response(err: ErrorResponse):
+    """Maps ErrorResponse to HTTP JSON response ."""
+
+    response = jsonify(err.to_dict())
+    response.status_code = err.status_code
+    return response
+
+
 @app.errorhandler(InvalidUsage)
 def handle_user_exception(e):
     """Return JSON instead of HTML for InvalidUsage errors."""
 
     error = ErrorResponse(e.status_code, e.__class__.__name__, e.message, e.payload)
-    return jsonify(error.to_dict()), error.status_code
+    return error_to_json_response(error)
 
 
 @app.errorhandler(InsufficientFunds)
@@ -30,7 +38,7 @@ def handle_wallet_exception(e):
         e.message,
         {"address": e.address, "balance": e.balance},
     )
-    return jsonify(error.to_dict()), error.status_code
+    return error_to_json_response(error)
 
 
 @app.errorhandler(InternalServerError)
@@ -47,7 +55,7 @@ def handle_500(e):
         e.description,
         None if not app.debug or not original else {"original": repr(original)},
     )
-    return jsonify(error.to_dict()), error.status_code
+    return error_to_json_response(error)
 
 
 @app.errorhandler(HTTPException)
@@ -55,7 +63,7 @@ def handle_exception(e):
     """Return JSON instead of HTML for HTTP errors."""
 
     error = ErrorResponse(e.code, e.__class__.__name__, e.description)
-    return jsonify(error.to_dict()), error.status_code
+    return error_to_json_response(error)
 
 
 @app.route("/")

@@ -22,6 +22,11 @@ class Output:
     address: str
     amount: int
 
+    def __iter__(self):
+        """Makes it unpackable."""
+
+        yield from astuple(self)
+
 
 @dataclass(frozen=True)
 class TxContext:
@@ -46,7 +51,7 @@ class TxContext:
 def create_unsigned(inputs: List[Unspent], outputs: List[Output]) -> TxObj:
     """Creates an unsigned transaction object"""
 
-    raw_outputs = construct_outputs(astuple(o) for o in outputs)
+    raw_outputs = construct_outputs(outputs)
     raw_inputs = [
         TxIn(
             script_sig=b"",  # empty scriptSig for new unsigned transaction.

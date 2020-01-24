@@ -26,6 +26,9 @@ class InsufficientFunds(WalletError):
         ex.message = f"Balance {balance} is less than {total} (including {fee} fee)"
         return ex
 
+    def __str__(self):
+        return self.message
+
 
 class EmptyUnspentTransactionOutputSet(InsufficientFunds):
     """Error raised when address has an empty UTXO set.

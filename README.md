@@ -14,6 +14,12 @@ $ pip install -r ./btc_api/requirements/dev.txt
 
 This will install dependencies for development environment including black formatter and flake8 linter (excluded in prod).
 
+### Run tests
+
+```bash
+$ python -m unittest discover btc_api
+```
+
 ### Run development server
 
 Start Flask development server (in debug mode) by running the following in the terminal:
@@ -48,15 +54,15 @@ We can test the endpoint using `curl` via POST sending JSON payload (just rememb
 ```bash
 $ curl -i -X POST http://localhost/payment_transactions \
 -H "Content-Type: application/json" \
--d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000}, "min_confirmations": 7}'
+-d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 20000}, "min_confirmations": 7}'
 ```
 
-To get the pretty printed JSON response drop the `-i` flag and pipe the `curl` result to a formatter like `json_pp`:
+NGINX optimizes JSON response so to get the pretty printed JSON response drop the `-i` flag and pipe the `curl` result to a formatter like `json_pp`:
 
 ```bash
 $ curl -X POST http://localhost/payment_transactions \
 -H "Content-Type: application/json" \
--d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000}, "min_confirmations": 7}' \
+-d '{"source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh", "outputs": {"17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 20000}, "min_confirmations": 7}' \
 | json_pp
 ```
 
@@ -69,8 +75,8 @@ $ curl -i -X POST http://localhost/payment_transactions \
 {
     "source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh",
     "outputs": {
-        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000,
-        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000
+        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 10000,
+        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 20000
     },
     "min_confirmations": 7,
     "fee_kb": 1024,
@@ -88,8 +94,8 @@ $ curl -i -X POST http://localhost/payment_transactions \
 {
     "source_address": "1Po1oWkD2LmodfkBYiAktwh76vkF93LKnh",
     "outputs": {
-        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 1000,
-        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 2000
+        "3EktnHQD7RiAE6uzMj2ZifT9YgRrkSgzQX": 10000,
+        "17VZNX1SN5NtKa8UQFxwQbFeFc3iqRYhem": 20000
     },
     "min_confirmations": 7,
     "fee_kb": 1024,
@@ -107,7 +113,7 @@ $ curl -i -X POST http://localhost/payment_transactions \
 {
     "source_address": "mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn",
     "outputs": {
-        "2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc": 1000
+        "2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc": 10000
     },
     "min_confirmations": 7,
     "fee_kb": 1024,

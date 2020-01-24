@@ -2,12 +2,14 @@ import random
 from dataclasses import dataclass
 from typing import List, Dict
 from app.errors import InvalidUsage, BAD_REQUEST
+from app.payment_errors import *
 from app.wallet.query import get_unspent
 from app.wallet.coin_select import (
     GreedyMaxSecure,
     GreedyMaxCoins,
     GreedyMinCoins,
     GreedyRandom,
+    DUST_THRESHOLD,
 )
 from app.wallet.transaction import TxContext, Output, create_unsigned
 from app.wallet.exceptions import (
@@ -30,7 +32,8 @@ coin_select_strategies = {
     "greedy_min_coins": GreedyMinCoins(),
     "greedy_random": GreedyRandom(random),
 }
-available_strategies_str = "|".join(coin_select_strategies.keys())
+
+DEFAULT_STRATEGY = list(coin_select_strategies.keys())[0]
 
 P2PKH_PREFIXES = {"1"}
 P2SH_PREFIXES = {"3"}
@@ -47,8 +50,8 @@ class PaymentTxRequest:
 
     source_address: str
     outputs: Dict[str, int]
-    fee_kb: int
-    strategy: str = "greedy_random"
+    fee_kb: int = MIN_RELAY_FEE
+    strategy: str = DEFAULT_STRATEGY
     min_confirmations: int = MIN_CONFIRMATIONS
     testnet: bool = False
 
@@ -58,84 +61,60 @@ class PaymentTxRequest:
 
         self._validate_source_address()
         self._validate_outputs()
-        self._validate_strategy()
         self._validate_fee_kb()
+        self._validate_strategy()
         self._validate_min_confirmations()
 
     def _validate_source_address(self):
         """Validates source_address attr."""
 
         if not self.source_address:
-            raise InvalidUsage("Please specify non-empty source address", BAD_REQUEST)
+            raise EmptySourceAddress()
 
         try:
             self.source_net = get_version(self.source_address)
         except ValueError as err:
-            raise InvalidUsage(
-                "Please specify valid source address.",
-                BAD_REQUEST,
-                payload={
-                    "source_address": self.source_address,
-                    "description": str(err),
-                },
-            )
+            raise InvalidSourceAddress(self.source_address, str(err))
         else:
             if self.source_net != self.requested_net:
-                raise InvalidUsage(
-                    f"Cannot send from {self.source_net}net address {self.source_address} if using {self.requested_net}net.",
-                    BAD_REQUEST,
-                    payload={
-                        "requested_net": self.requested_net,
-                        "source_address": self.source_address,
-                        "source_net": self.source_net,
-                    },
+                raise NetworkMismatchSourceAddress(
+                    self.source_address, self.source_net, self.requested_net
                 )
 
         if self.source_address[0] not in supported_in_prefixes:
-            raise InvalidUsage("Only P2PKH inputs are supported", BAD_REQUEST)
+            raise NotSupportedSourceAddress()
 
     def _validate_outputs(self):
         """Validates output addresses."""
 
         if not self.outputs:
-            raise InvalidUsage("Please specify at least one output", BAD_REQUEST)
+            raise EmptyOutputs()
 
         # Sanity check: If spending from main-/testnet, then all output addresses must also be for main-/testnet.
         for dest in self.outputs.keys():
             if dest[0] not in supported_out_prefixes:
-                raise InvalidUsage("Only P2PKH/P2SH outputs are supported", BAD_REQUEST)
+                raise NotSupportedOutputAddress()
 
             try:
                 vs = get_version(dest)
             except ValueError as err:
-                raise InvalidUsage(
-                    "Please specify valid destination address.",
-                    BAD_REQUEST,
-                    payload={"dest_address": dest, "description": str(err)},
-                )
+                raise InvalidOutputAddress(dest, str(err))
             else:
                 if vs and vs != self.requested_net:
-                    raise InvalidUsage(
-                        f"Cannot send to {vs}net address {dest} when spending from a {self.source_net}net address {self.source_address}.",
-                        BAD_REQUEST,
-                        payload={
-                            "requested_net": self.requested_net,
-                            "source_address": self.source_address,
-                            "source_net": self.source_net,
-                            "dest_address": dest,
-                            "dest_net": vs,
-                        },
+                    raise NetworkMismatchOutputAddress(
+                        self.source_address,
+                        self.source_net,
+                        dest,
+                        vs,
+                        self.requested_net,
                     )
 
-    def _validate_strategy(self):
-        """Validates strategy attr."""
-
-        if self.strategy not in coin_select_strategies.keys():
-            raise InvalidUsage(
-                f"Please specify one of [{available_strategies_str}] for strategy.",
-                BAD_REQUEST,
-                payload={"strategy": self.strategy},
-            )
+            try:
+                self.outputs[dest] = int(self.outputs[dest])
+                if self.outputs[dest] < DUST_THRESHOLD:
+                    raise ValueError("Output amount is lower that dust threshold.")
+            except ValueError as err:
+                raise InvalidOutputAmount(self.outputs[dest], DUST_THRESHOLD, str(err))
 
     def _validate_fee_kb(self):
         """Validates fee_kb attr."""
@@ -145,11 +124,13 @@ class PaymentTxRequest:
             if self.fee_kb < MIN_RELAY_FEE:
                 raise ValueError("Fee per kb is too low.")
         except ValueError as err:
-            raise InvalidUsage(
-                f"Please specify valid number >= {MIN_RELAY_FEE} (minimum) for fee_kb.",
-                BAD_REQUEST,
-                payload={"fee_kb": self.fee_kb, "description": str(err)},
-            )
+            raise InvalidFee(self.fee_kb, MIN_RELAY_FEE, str(err))
+
+    def _validate_strategy(self):
+        """Validates strategy attr."""
+
+        if self.strategy not in coin_select_strategies.keys():
+            raise InvalidStrategy(self.strategy, coin_select_strategies.keys())
 
     def _validate_min_confirmations(self):
         """Validates min_confirmations attr."""
@@ -159,14 +140,7 @@ class PaymentTxRequest:
             if self.min_confirmations < 0:
                 raise ValueError("Number of confirmations can not be < 0.")
         except ValueError as err:
-            raise InvalidUsage(
-                "Please specify valid number >= 0 for min_confirmations.",
-                BAD_REQUEST,
-                payload={
-                    "min_confirmations": self.min_confirmations,
-                    "description": str(err),
-                },
-            )
+            raise InvalidMinConfirmations(self.min_confirmations, str(err))
 
 
 @dataclass
