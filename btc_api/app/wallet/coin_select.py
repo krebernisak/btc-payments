@@ -2,6 +2,7 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
+from functools import partial
 
 from bit.wallet import Unspent
 
@@ -59,33 +60,48 @@ class Greedy(UnspentCoinSelector):
             raise InsufficientFunds(context.address, 0)
 
         outputs = context.outputs[:]
+        estimate_tx_fee = partial(estimate_tx_fee_kb, fee_kb=context.fee_kb)
 
         n_out = len(outputs)
+
+        def change_included():
+            return n_out == len(outputs) + 1
+
         out_amount = sum(out.amount for out in outputs)
         out_size = sum(address_to_output_size(out.address) for out in outputs)
 
         in_size = 0
         in_amount = 0
         change_amount = 0
-        change_included = False
 
         for n_in, utxo in enumerate(context.inputs, 1):
             in_size += utxo.vsize
-            fee = estimate_tx_fee_kb(in_size, n_in, out_size, n_out, context.fee_kb)
+            fee = estimate_tx_fee(in_size, n_in, out_size, n_out)
 
             in_amount += utxo.amount
-            change_amount = in_amount - (out_amount + fee)
-            change_amount = change_amount if change_amount >= DUST_THRESHOLD else 0
-            fee = fee + change_amount if 0 > change_amount < DUST_THRESHOLD else fee
-
-            if change_amount and not change_included:
-                n_out += 1
-                out_size += address_to_output_size(context.change_address)
-                fee = estimate_tx_fee_kb(in_size, n_in, out_size, n_out, context.fee_kb)
-                change_amount = in_amount - (out_amount + fee)
-                change_included = True
+            change_amount = max(0, in_amount - (out_amount + fee))
+            if 0 < change_amount < DUST_THRESHOLD:
+                fee += change_amount
+                change_amount = 0
+            elif change_amount >= DUST_THRESHOLD and not change_included():
+                # Calculate new change_amount with fee including the change address output
+                # and add it to tx if new estimate gives us change_amount >= DUST_THRESHOLD
+                change_out_size = address_to_output_size(context.change_address)
+                fee_with_change = estimate_tx_fee(
+                    in_size, n_in, out_size + change_out_size, n_out + 1
+                )
+                change_amount_with_fee = in_amount - (out_amount + fee_with_change)
+                if change_amount_with_fee < DUST_THRESHOLD:
+                    fee += change_amount
+                    change_amount = 0
+                else:
+                    n_out += 1
+                    out_size += change_out_size
+                    fee, change_amount = fee_with_change, change_amount_with_fee
 
             if out_amount + fee + change_amount <= in_amount:
+                assert change_amount == 0 or change_amount >= DUST_THRESHOLD
+                assert in_amount - (out_amount + fee + change_amount) == 0
                 break
             elif n_in == len(context.inputs):
                 raise InsufficientFunds.forAmount(
@@ -109,7 +125,7 @@ class GreedyMaxSecure(Greedy):
         """
 
         sorted_inputs = sorted(context.inputs, key=lambda utxo: -utxo.confirmations)
-        return super().select(context.copy_with_selected(sorted_inputs))
+        return super().select(context.copy(inputs=sorted_inputs))
 
 
 class GreedyMaxCoins(Greedy):
@@ -122,7 +138,7 @@ class GreedyMaxCoins(Greedy):
         """
 
         sorted_inputs = sorted(context.inputs, key=lambda utxo: utxo.amount)
-        return super().select(context.copy_with_selected(sorted_inputs))
+        return super().select(context.copy(inputs=sorted_inputs))
 
 
 class GreedyMinCoins(Greedy):
@@ -135,7 +151,7 @@ class GreedyMinCoins(Greedy):
         """
 
         sorted_inputs = sorted(context.inputs, key=lambda utxo: -utxo.amount)
-        return super().select(context.copy_with_selected(sorted_inputs))
+        return super().select(context.copy(inputs=sorted_inputs))
 
 
 class GreedyRandom(Greedy):
@@ -151,4 +167,4 @@ class GreedyRandom(Greedy):
 
         shuffled_copy = context.inputs[:]
         self.random.shuffle(shuffled_copy)
-        return super().select(context.copy_with_selected(shuffled_copy))
+        return super().select(context.copy(inputs=shuffled_copy))

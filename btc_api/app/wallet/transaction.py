@@ -44,11 +44,13 @@ class TxContext:
     fee_kb: int
     change_address: str
 
-    def copy_with_selected(self, inputs: List[Unspent]) -> TxContext:
+    def copy(
+        self, *, inputs: List[Unspent] = None, outputs: List[Output] = None
+    ) -> TxContext:
         return TxContext(
             self.address,
-            inputs,  # we change the inputs on new context
-            self.outputs,
+            inputs if inputs is not None else self.inputs,
+            outputs if outputs is not None else self.outputs,
             self.fee_kb,
             self.change_address,
         )
